@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #0f1117;
+  color: #e0e0e0;
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1d2e; }
+::-webkit-scrollbar-thumb { background: #2a2d3e; border-radius: 3px; }
+
+.card {
+  @apply bg-surface border border-border rounded-xl p-4;
+}
+
+.badge-normal   { @apply bg-green/20  text-green  border border-green/40; }
+.badge-inner    { @apply bg-orange/20 text-orange border border-orange/40; }
+.badge-ball     { @apply bg-purple/20 text-purple border border-purple/40; }
+.badge-outer    { @apply bg-red/20    text-red    border border-red/40; }
+.badge-healthy  { @apply bg-green/20  text-green  border border-green/40; }
+.badge-warning  { @apply bg-orange/20 text-orange border border-orange/40; }
+.badge-critical { @apply bg-red/20    text-red    border border-red/40; }
