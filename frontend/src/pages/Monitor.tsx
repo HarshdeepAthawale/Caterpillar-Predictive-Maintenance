@@ -4,137 +4,117 @@ import { useWebSocket } from '../hooks/useWebSocket'
 import WaveformChart from '../components/WaveformChart'
 import ConfidenceBar from '../components/ConfidenceBar'
 import FaultBadge from '../components/FaultBadge'
-import { Wifi, WifiOff, AlertCircle, CheckCircle2 } from 'lucide-react'
+import { AlertCircle, CheckCircle, Wifi, WifiOff } from 'lucide-react'
 
-const FAULT_COLORS: Record<string, string> = {
-  Normal      : '#16A34A',
-  'Inner Race': '#D97706',
-  'Ball Fault': '#7C3AED',
-  'Outer Race': '#DC2626',
+const FAULT_COLOR: Record<string, string> = {
+  Normal: '#17C964', 'Inner Race': '#F5A524', 'Ball Fault': '#7828C8', 'Outer Race': '#F31260',
 }
-
 const WINDOW = 300
 
 export default function Monitor() {
   const machineId   = useStore(s => s.machineId)
   const latest      = useStore(s => s.latestPrediction)
   const isConnected = useStore(s => s.isConnected)
+  const darkMode    = useStore(s => s.darkMode)
   useWebSocket(machineId)
 
-  const [waveform, setWaveform] = useState<number[]>(Array(WINDOW).fill(0))
-  const tickRef = useRef(0)
+  const [wave, setWave] = useState<number[]>(Array(WINDOW).fill(0))
+  const tick = useRef(0)
 
   useEffect(() => {
     const id = setInterval(() => {
-      tickRef.current += 0.12
-      const base  = Math.sin(tickRef.current) * 0.5
-      const noise = (Math.random() - 0.5) * 0.3
-      const fault = latest?.is_fault ? Math.sin(tickRef.current * 5) * 0.5 : 0
-      setWaveform(prev => [...prev.slice(1), base + noise + fault])
-    }, 40)
+      tick.current += 0.10
+      const base  = Math.sin(tick.current) * 0.45 + Math.sin(tick.current * 3.1) * 0.1
+      const noise = (Math.random() - 0.5) * 0.22
+      const fault = latest?.is_fault ? Math.sin(tick.current * 6) * 0.45 : 0
+      setWave(p => [...p.slice(1), base + noise + fault])
+    }, 35)
     return () => clearInterval(id)
   }, [latest?.is_fault])
 
-  const faultColor = latest ? FAULT_COLORS[latest.fault_class] ?? '#2563EB' : '#2563EB'
-  const isFault    = latest?.is_fault ?? false
+  const color   = latest ? (FAULT_COLOR[latest.fault_class] ?? '#006FEE') : '#006FEE'
+  const isFault = latest?.is_fault ?? false
 
   return (
-    <div className="space-y-6 max-w-6xl">
+    <div className="flex flex-col gap-4 h-full">
+
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between shrink-0">
         <div>
-          <h1 className="text-2xl font-bold text-fg">Live Monitor</h1>
-          <p className="text-muted text-sm">Real-time vibration stream — {machineId}</p>
+          <h2 className="text-base font-semibold" style={{ color: 'var(--fg)' }}>Live Monitor</h2>
+          <p className="text-[12px] mt-0.5" style={{ color: 'var(--muted)' }}>{machineId} — drive end accelerometer</p>
         </div>
-        <div className={`flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium
-          ${isConnected
-            ? 'bg-success/8 border-success/25 text-success'
-            : 'bg-danger/8 border-danger/25 text-danger'}`}>
-          {isConnected ? <Wifi size={15} /> : <WifiOff size={15} />}
-          {isConnected ? 'Live Stream' : 'Disconnected'}
+        <div className={`flex items-center gap-1.5 text-[12px] font-medium px-3 py-1.5 rounded border
+          ${isConnected ? 'text-success bg-success/8 border-success/20' : 'text-danger bg-danger/8 border-danger/20'}`}>
+          {isConnected ? <Wifi size={13} /> : <WifiOff size={13} />}
+          {isConnected ? 'Connected' : 'Disconnected'}
         </div>
       </div>
 
-      {/* Fault alert banner */}
+      {/* Fault alert */}
       {isFault && (
-        <div className="flex items-center gap-3 p-4 rounded-2xl border-2 border-danger/30 bg-danger/5">
-          <AlertCircle size={20} className="text-danger shrink-0" />
+        <div className="flex items-start gap-3 p-4 rounded-lg border border-danger/25 bg-danger/5 shrink-0">
+          <AlertCircle size={16} className="text-danger mt-0.5 shrink-0" />
           <div>
-            <p className="font-semibold text-danger text-sm">Fault Detected</p>
-            <p className="text-xs text-muted mt-0.5">
-              {latest?.fault_class} — {(latest!.confidence * 100).toFixed(1)}% confidence
+            <p className="text-[13px] font-semibold text-danger">Fault Detected</p>
+            <p className="text-[12px] mt-0.5" style={{ color: 'var(--muted)' }}>
+              {latest?.fault_class} — {(latest!.confidence * 100).toFixed(1)}% confidence. Schedule maintenance.
             </p>
           </div>
-          <FaultBadge label={latest!.fault_class} />
+          <div className="ml-auto shrink-0"><FaultBadge label={latest!.fault_class} /></div>
         </div>
       )}
 
-      {/* Waveform */}
-      <div className="card">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <p className="text-sm font-semibold text-fg">Drive End Accelerometer</p>
-            <p className="text-xs text-muted">12 kHz sampling — rolling window (300 pts)</p>
-          </div>
+      {/* Waveform — flex-1 fills remaining space */}
+      <div className="card flex flex-col flex-1 min-h-0">
+        <div className="flex items-center justify-between mb-3 shrink-0">
           <div className="flex items-center gap-2">
-            <span className="w-3 h-0.5 rounded" style={{ backgroundColor: faultColor }} />
-            <span className="text-xs text-muted font-medium"
-              style={{ color: faultColor }}>{latest?.fault_class ?? 'No signal'}</span>
+            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
+            <span className="text-[12px] font-medium" style={{ color: 'var(--fg)' }}>
+              {latest?.fault_class ?? 'No signal'} — vibration amplitude
+            </span>
           </div>
+          <span className="text-[11px] font-mono" style={{ color: 'var(--subtle)' }}>12 kHz · {WINDOW} pts</span>
         </div>
-        <WaveformChart data={waveform} color={faultColor} height={150} />
-        <div className="flex justify-between text-xs text-muted mt-2 px-1">
-          <span>← 12 seconds ago</span>
-          <span>Now →</span>
+        <div className="flex-1 min-h-0">
+          <WaveformChart data={wave} color={color} darkMode={darkMode} />
+        </div>
+        <div className="flex justify-between text-[10px] font-mono mt-2 shrink-0" style={{ color: 'var(--subtle)' }}>
+          <span>← {(WINDOW / 12000 * 1000).toFixed(0)} ms ago</span>
+          <span>now →</span>
         </div>
       </div>
 
-      {/* Bottom panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Current reading */}
-        <div className="card">
-          <p className="text-sm font-semibold text-fg mb-4">Current Reading</p>
+      {/* Bottom row */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 shrink-0">
+        <div className="card lg:col-span-2">
+          <p className="text-[12px] font-semibold mb-3" style={{ color: 'var(--fg)' }}>Current Reading</p>
           {latest ? (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Fault Class</span>
-                <FaultBadge label={latest.fault_class} />
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Confidence</span>
-                <span className="font-bold text-sm" style={{ color: faultColor }}>
-                  {(latest.confidence * 100).toFixed(2)}%
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Latency</span>
-                <span className="text-sm font-mono text-fg">{latest.latency_ms.toFixed(1)} ms</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-muted">Status</span>
-                {isFault
-                  ? <span className="flex items-center gap-1 text-xs font-semibold text-danger">
-                      <AlertCircle size={12} /> FAULT
-                    </span>
-                  : <span className="flex items-center gap-1 text-xs font-semibold text-success">
-                      <CheckCircle2 size={12} /> NORMAL
-                    </span>
-                }
-              </div>
+            <div className="space-y-0">
+              {[
+                ['Classification', <FaultBadge label={latest.fault_class} />],
+                ['Confidence', <span className="font-mono text-[12px] font-semibold" style={{color}}>{(latest.confidence*100).toFixed(2)}%</span>],
+                ['Latency',    <span className="font-mono text-[12px]" style={{color:'var(--fg)'}}>{latest.latency_ms.toFixed(1)} ms</span>],
+                ['Status', isFault
+                  ? <span className="flex items-center gap-1 text-[11px] font-semibold text-danger"><AlertCircle size={11}/>Fault</span>
+                  : <span className="flex items-center gap-1 text-[11px] font-semibold text-success"><CheckCircle size={11}/>Normal</span>
+                ],
+              ].map(([k,v],i) => (
+                <div key={i} className="flex items-center justify-between py-2.5 border-b last:border-0" style={{borderColor:'var(--border)'}}>
+                  <span className="text-[12px]" style={{color:'var(--muted)'}}>{k as string}</span>{v}
+                </div>
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-muted text-center py-8">Awaiting data...</p>
+            <p className="text-[12px] text-center py-8" style={{ color: 'var(--subtle)' }}>Waiting…</p>
           )}
         </div>
 
-        {/* Confidence bars */}
-        <div className="card lg:col-span-2">
-          <p className="text-sm font-semibold text-fg mb-4">Fault Probability Distribution</p>
-          {latest ? (
-            <ConfidenceBar probabilities={latest.probabilities} />
-          ) : (
-            <p className="text-sm text-muted text-center py-8">No prediction yet</p>
-          )}
+        <div className="card lg:col-span-3">
+          <p className="text-[12px] font-semibold mb-4" style={{ color: 'var(--fg)' }}>Fault Probability</p>
+          {latest
+            ? <ConfidenceBar probabilities={latest.probabilities} />
+            : <p className="text-[12px] text-center py-8" style={{ color: 'var(--subtle)' }}>No prediction yet</p>}
         </div>
       </div>
     </div>

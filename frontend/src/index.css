@@ -1,45 +1,86 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-* { box-sizing: border-box; }
-
-body {
-  background-color: #F3F4F6;
-  color: #111827;
-  font-family: 'Inter', system-ui, sans-serif;
-  -webkit-font-smoothing: antialiased;
+/* ── CSS tokens: light (default) ── */
+:root {
+  --bg      : #F7F7F8;
+  --surface : #FFFFFF;
+  --border  : #E8E8EC;
+  --fg      : #0A0A0A;
+  --muted   : #6E6E80;
+  --subtle  : #A1A1AA;
 }
 
-::-webkit-scrollbar { width: 5px; height: 5px; }
-::-webkit-scrollbar-track { background: #F3F4F6; }
-::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 4px; }
+/* ── CSS tokens: X/Twitter dark ── */
+.dark {
+  --bg      : #000000;
+  --surface : #16181C;
+  --border  : #2F3336;
+  --fg      : #E7E9EA;
+  --muted   : #71767B;
+  --subtle  : #536471;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 14px; }
+
+body {
+  background : var(--bg);
+  color      : var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.5;
+  transition : background 0.15s, color 0.15s;
+}
+
+::-webkit-scrollbar            { width: 4px; height: 4px; }
+::-webkit-scrollbar-track      { background: transparent; }
+::-webkit-scrollbar-thumb      { background: var(--border); border-radius: 99px; }
 
 @layer components {
   .card {
-    @apply bg-surface rounded-2xl shadow-card border border-border p-5;
+    background   : var(--surface);
+    border       : 1px solid var(--border);
+    border-radius: 10px;
+    padding      : 1.25rem;
   }
 
-  .btn-primary {
-    @apply flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-xl
-           bg-cat-dark text-white hover:bg-cat-dark/90 transition-colors;
+  .section-label {
+    @apply text-2xs font-semibold uppercase tracking-widest;
+    color: var(--subtle);
   }
 
-  .btn-ghost {
-    @apply flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg
-           border border-border text-muted hover:text-fg hover:bg-white transition-colors;
+  /* Nav */
+  .nav-item {
+    @apply flex items-center gap-2.5 px-3 py-1.5 rounded text-[13px] font-medium
+           transition-all duration-100 cursor-pointer select-none;
+    color: var(--muted);
   }
+  .nav-item:hover  { color: var(--fg); background: var(--bg); }
+  .nav-item.active { color: var(--fg); background: var(--bg); font-weight: 600; }
 
-  /* Fault badges */
-  .badge {
-    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold;
-  }
-  .badge-normal   { @apply badge bg-success/10 text-success ring-1 ring-success/20; }
-  .badge-inner    { @apply badge bg-warning/10 text-warning ring-1 ring-warning/20; }
-  .badge-ball     { @apply badge bg-purple/10  text-purple  ring-1 ring-purple/20; }
-  .badge-outer    { @apply badge bg-danger/10  text-danger  ring-1 ring-danger/20; }
-  .badge-healthy  { @apply badge bg-success/10 text-success ring-1 ring-success/20; }
-  .badge-warning  { @apply badge bg-warning/10 text-warning ring-1 ring-warning/20; }
-  .badge-critical { @apply badge bg-danger/10  text-danger  ring-1 ring-danger/20; }
+  /* Buttons */
+  .btn { @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded text-[13px] font-medium transition-all duration-100 select-none cursor-pointer; }
+  .btn-primary { @apply btn shadow-sm; background: var(--fg); color: var(--surface); }
+  .btn-primary:hover { opacity: 0.88; }
+  .btn-ghost   { @apply btn; border: 1px solid var(--border); color: var(--muted); background: var(--surface); }
+  .btn-ghost:hover { color: var(--fg); border-color: var(--muted); }
+
+  /* Badges */
+  .badge         { @apply inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold; }
+  .badge-normal  { @apply badge bg-success/10 text-success; }
+  .badge-inner   { @apply badge bg-warning/10 text-warning; }
+  .badge-ball    { @apply badge bg-violet/10  text-violet; }
+  .badge-outer   { @apply badge bg-danger/10  text-danger; }
+  .badge-healthy { @apply badge bg-success/10 text-success; }
+  .badge-warning { @apply badge bg-warning/10 text-warning; }
+  .badge-critical{ @apply badge bg-danger/10  text-danger; }
+
+  /* Stat helpers */
+  .stat-label { @apply text-[11px] font-medium; color: var(--muted); }
+  .stat-value { @apply text-2xl font-bold tracking-tight; color: var(--fg); }
+  .stat-sub   { @apply text-[11px] mt-0.5; color: var(--subtle); }
 }

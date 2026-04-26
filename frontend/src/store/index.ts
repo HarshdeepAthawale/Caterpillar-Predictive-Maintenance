@@ -14,6 +14,9 @@ interface AppState {
 
   isConnected: boolean
   setConnected: (v: boolean) => void
+
+  darkMode: boolean
+  toggleDark: () => void
 }
 
 export const useStore = create<AppState>((set) => ({
@@ -30,4 +33,12 @@ export const useStore = create<AppState>((set) => ({
 
   isConnected: false,
   setConnected: (v) => set({ isConnected: v }),
+
+  darkMode: false,
+  toggleDark: () =>
+    set((s) => {
+      const next = !s.darkMode
+      document.documentElement.classList.toggle('dark', next)
+      return { darkMode: next }
+    }),
 }))

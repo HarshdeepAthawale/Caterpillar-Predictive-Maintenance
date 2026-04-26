@@ -7,168 +7,150 @@ import { fetchHistory, fetchModelMetrics } from '../api/client'
 import { useStore } from '../store'
 import { Cpu, Layers, Zap, Activity } from 'lucide-react'
 
-const COLORS  = ['#16A34A', '#D97706', '#7C3AED', '#DC2626']
-const TOOLTIP = {
-  contentStyle: {
-    backgroundColor: '#fff', border: '1px solid #E5E7EB',
-    borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-  },
-  labelStyle: { color: '#111827', fontWeight: 600 },
-  itemStyle : { color: '#6B7280' },
-}
+const PALETTE = ['#17C964', '#F5A524', '#7828C8', '#F31260']
 
 export default function Analytics() {
   const machineId = useStore(s => s.machineId)
+  const darkMode  = useStore(s => s.darkMode)
 
   const { data: history } = useQuery({
-    queryKey: ['analytics-history', machineId],
-    queryFn : () => fetchHistory({ machine_id: machineId, hours: 168, limit: 1000 }),
+    queryKey: ['analytics', machineId],
+    queryFn : () => fetchHistory({ machine_id: machineId, hours: 168, limit: 2000 }),
   })
-
-  const { data: modelInfo } = useQuery({
-    queryKey: ['model-metrics'],
+  const { data: model } = useQuery({
+    queryKey: ['model-info'],
     queryFn : fetchModelMetrics,
   })
 
-  // Fault class distribution
   const classCounts: Record<string, number> = {}
   history?.forEach(e => { classCounts[e.fault_class] = (classCounts[e.fault_class] ?? 0) + 1 })
   const pieData = Object.entries(classCounts).map(([name, value]) => ({ name, value }))
 
-  // Hourly fault rate (last 24h)
-  const hourlyMap: Record<string, number> = {}
+  const hourMap: Record<string, number> = {}
   history?.forEach(e => {
     const h = new Date(e.timestamp).toISOString().slice(0, 13)
-    hourlyMap[h] = (hourlyMap[h] ?? 0) + (e.is_fault ? 1 : 0)
+    hourMap[h] = (hourMap[h] ?? 0) + (e.is_fault ? 1 : 0)
   })
-  const lineData = Object.entries(hourlyMap)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .slice(-24)
-    .map(([hour, faults]) => ({ hour: hour.slice(11) + 'h', faults }))
+  const lineData = Object.entries(hourMap)
+    .sort(([a],[b]) => a.localeCompare(b)).slice(-24)
+    .map(([h, faults]) => ({ hour: h.slice(11)+'h', faults }))
 
-  // Avg latency per class
   const latMap: Record<string, number[]> = {}
   history?.forEach(e => { (latMap[e.fault_class] ??= []).push(e.latency_ms) })
   const latData = Object.entries(latMap).map(([cls, vals]) => ({
-    class: cls, avg: parseFloat((vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(2)),
+    class: cls.split(' ')[0],
+    avg: +(vals.reduce((a,b)=>a+b,0)/vals.length).toFixed(2),
   }))
 
-  const modelCards = modelInfo ? [
-    { icon: <Cpu size={16} className="text-info" />, label: 'Model', value: modelInfo.model },
-    { icon: <Layers size={16} className="text-purple" />, label: 'Framework', value: modelInfo.framework },
-    { icon: <Zap size={16} className="text-warning" />, label: 'Window', value: `${modelInfo.window_size} samples` },
-    { icon: <Activity size={16} className="text-success" />, label: 'Sample Rate', value: `${modelInfo.sample_rate / 1000} kHz` },
-  ] : []
+  const gridColor  = darkMode ? '#2F3336' : '#F7F7F8'
+  const tickColor  = darkMode ? '#536471' : '#A1A1AA'
+  const tipStyle   = {
+    contentStyle: { background: darkMode?'#16181C':'#fff', border: `1px solid ${darkMode?'#2F3336':'#E8E8EC'}`, borderRadius: 10, fontSize: 12 },
+    labelStyle: { color: darkMode?'#E7E9EA':'#0A0A0A', fontWeight: 600 },
+    itemStyle : { color: darkMode?'#71767B':'#6E6E80' },
+  }
+  const axisProps = {
+    tick: { fill: tickColor, fontSize: 11, fontFamily: 'JetBrains Mono' },
+    axisLine: false as const, tickLine: false as const,
+  }
 
   return (
-    <div className="space-y-6 max-w-6xl">
-      <div>
-        <h1 className="text-2xl font-bold text-fg">Analytics</h1>
-        <p className="text-muted text-sm">Fault distribution & model performance — last 7 days</p>
-      </div>
+    <div className="flex flex-col gap-4 h-full">
 
-      {/* Model info */}
-      {modelInfo && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {modelCards.map(({ icon, label, value }) => (
-            <div key={label} className="card flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-bg shrink-0">{icon}</div>
+      {/* Model meta cards */}
+      {model && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
+          {[
+            { icon: <Cpu size={14} className="text-info" />,     k:'Model',       v: model.model },
+            { icon: <Layers size={14} className="text-violet" />, k:'Framework',   v: model.framework },
+            { icon: <Zap size={14} className="text-warning" />,  k:'Window',      v: `${model.window_size} samples` },
+            { icon: <Activity size={14} className="text-success" />, k:'Sample Rate', v: `${model.sample_rate/1000} kHz` },
+          ].map(({ icon, k, v }) => (
+            <div key={k} className="card flex items-center gap-3 py-3">
+              <div className="p-2 rounded-lg shrink-0" style={{ background: 'var(--bg)' }}>{icon}</div>
               <div>
-                <p className="text-xs text-muted">{label}</p>
-                <p className="text-sm font-semibold text-fg truncate">{value}</p>
+                <p className="section-label">{k}</p>
+                <p className="text-[13px] font-semibold truncate mt-0.5" style={{ color: 'var(--fg)' }}>{v}</p>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {/* Fault class distribution */}
-        <div className="card">
-          <p className="text-sm font-semibold text-fg mb-1">Fault Class Distribution</p>
-          <p className="text-xs text-muted mb-5">Breakdown of all detected classes</p>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <PieChart>
-                <Pie data={pieData} dataKey="value" nameKey="name"
-                  cx="50%" cy="50%" outerRadius={85} innerRadius={45}
-                  paddingAngle={3}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  labelLine={{ stroke: '#D1D5DB' }}>
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip {...TOOLTIP} />
-              </PieChart>
-            </ResponsiveContainer>
-          ) : <EmptyChart />}
-        </div>
-
-        {/* Hourly fault rate */}
-        <div className="card">
-          <p className="text-sm font-semibold text-fg mb-1">Hourly Fault Rate</p>
-          <p className="text-xs text-muted mb-5">Number of faults per hour (last 24h)</p>
-          {lineData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <LineChart data={lineData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" />
-                <XAxis dataKey="hour" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip {...TOOLTIP} />
-                <Line type="monotone" dataKey="faults" stroke="#2563EB"
-                  strokeWidth={2.5} dot={{ r: 3, fill: '#2563EB' }} activeDot={{ r: 5 }} />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : <EmptyChart />}
-        </div>
-
-        {/* Avg inference latency */}
-        <div className="card">
-          <p className="text-sm font-semibold text-fg mb-1">Avg Inference Latency per Class</p>
-          <p className="text-xs text-muted mb-5">ONNX runtime latency in milliseconds</p>
-          {latData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <BarChart data={latData} barSize={36}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="class" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip {...TOOLTIP} />
-                <Bar dataKey="avg" radius={[6, 6, 0, 0]} name="Avg ms">
-                  {latData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <EmptyChart />}
-        </div>
-
-        {/* Total events per class */}
-        <div className="card">
-          <p className="text-sm font-semibold text-fg mb-1">Total Events per Class</p>
-          <p className="text-xs text-muted mb-5">Event count breakdown by fault type</p>
-          {pieData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={230}>
-              <BarChart data={pieData} barSize={36}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#F3F4F6" vertical={false} />
-                <XAxis dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} axisLine={false} tickLine={false} />
-                <Tooltip {...TOOLTIP} />
-                <Bar dataKey="value" radius={[6, 6, 0, 0]} name="Events">
-                  {pieData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <EmptyChart />}
-        </div>
+      {/* Charts grid — flex-1 fills remaining space */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1 min-h-0">
+        {[
+          {
+            title: 'Fault Class Distribution', sub: 'Breakdown of detected classes',
+            chart: pieData.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" cx="50%" cy="50%"
+                    outerRadius="70%" innerRadius="42%" paddingAngle={3} strokeWidth={0}>
+                    {pieData.map((_,i) => <Cell key={i} fill={PALETTE[i%4]} />)}
+                  </Pie>
+                  <Tooltip {...tipStyle} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : null,
+          },
+          {
+            title: 'Hourly Fault Rate', sub: 'Faults per hour — last 24h',
+            chart: lineData.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={lineData}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={gridColor} />
+                  <XAxis dataKey="hour" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip {...tipStyle} />
+                  <Line type="monotone" dataKey="faults" stroke="#006FEE"
+                    strokeWidth={2} dot={{ r:2.5, fill:'#006FEE', strokeWidth:0 }} activeDot={{ r:4 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            ) : null,
+          },
+          {
+            title: 'Avg Inference Latency', sub: 'ONNX runtime — ms per class',
+            chart: latData.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={latData} barSize={36}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={gridColor} vertical={false} />
+                  <XAxis dataKey="class" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip {...tipStyle} />
+                  <Bar dataKey="avg" radius={[5,5,0,0]} name="ms">
+                    {latData.map((_,i) => <Cell key={i} fill={PALETTE[i%4]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : null,
+          },
+          {
+            title: 'Events per Class', sub: 'Total recorded events by fault type',
+            chart: pieData.length ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={pieData} barSize={36}>
+                  <CartesianGrid strokeDasharray="4 4" stroke={gridColor} vertical={false} />
+                  <XAxis dataKey="name" {...axisProps} />
+                  <YAxis {...axisProps} />
+                  <Tooltip {...tipStyle} />
+                  <Bar dataKey="value" radius={[5,5,0,0]} name="Events">
+                    {pieData.map((_,i) => <Cell key={i} fill={PALETTE[i%4]} />)}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : null,
+          },
+        ].map(({ title, sub, chart }) => (
+          <div key={title} className="card flex flex-col min-h-0">
+            <p className="text-[13px] font-semibold shrink-0" style={{ color: 'var(--fg)' }}>{title}</p>
+            <p className="text-[11px] mt-0.5 mb-3 shrink-0" style={{ color: 'var(--muted)' }}>{sub}</p>
+            <div className="flex-1 min-h-0">
+              {chart ?? <div className="flex items-center justify-center h-full text-[12px]" style={{ color: 'var(--subtle)' }}>No data yet</div>}
+            </div>
+          </div>
+        ))}
       </div>
-    </div>
-  )
-}
-
-function EmptyChart() {
-  return (
-    <div className="flex items-center justify-center h-52 text-muted text-sm">
-      No data available yet
     </div>
   )
 }

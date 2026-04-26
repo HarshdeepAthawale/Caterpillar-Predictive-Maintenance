@@ -1,34 +1,41 @@
-interface Props { score: number; size?: number }
+export default function HealthGauge({ score }: { score: number }) {
+  const pct   = Math.min(Math.max(score, 0), 100)
+  const color = pct > 75 ? '#17C964' : pct > 40 ? '#F5A524' : '#F31260'
+  const label = pct > 75 ? 'Healthy' : pct > 40 ? 'Warning' : 'Critical'
 
-export default function HealthGauge({ score, size = 140 }: Props) {
-  const r      = (size / 2) * 0.78
-  const cx     = size / 2
-  const cy     = size / 2
-  const circ   = Math.PI * r
-  const offset = circ * (1 - Math.min(score, 100) / 100)
-  const color  = score > 75 ? '#16A34A' : score > 40 ? '#D97706' : '#DC2626'
-  const label  = score > 75 ? 'Healthy' : score > 40 ? 'Warning' : 'Critical'
+  // SVG arc path
+  const r    = 52
+  const cx   = 64
+  const cy   = 64
+  const circ = Math.PI * r
+  const dash = (pct / 100) * circ
 
   return (
-    <div className="flex flex-col items-center">
-      <svg width={size} height={size * 0.6} viewBox={`0 0 ${size} ${size * 0.6}`}>
+    <div className="flex flex-col items-center gap-1">
+      <svg width="128" height="80" viewBox="0 0 128 80">
+        {/* Track */}
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke="#E5E7EB" strokeWidth={size * 0.07} strokeLinecap="round"
+          fill="none" stroke="#E8E8EC" strokeWidth="10" strokeLinecap="round"
         />
+        {/* Fill */}
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke={color} strokeWidth={size * 0.07} strokeLinecap="round"
-          strokeDasharray={circ} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.7s ease' }}
+          fill="none" stroke={color} strokeWidth="10" strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          style={{ transition: 'stroke-dasharray 0.8s cubic-bezier(.4,0,.2,1)' }}
         />
-        <text x={cx} y={cy * 0.92} textAnchor="middle" fill={color}
-          fontSize={size * 0.18} fontWeight="700" fontFamily="Inter, sans-serif">
-          {score.toFixed(0)}%
+        {/* Score text */}
+        <text x={cx} y={cy - 4} textAnchor="middle" fill={color}
+          fontSize="22" fontWeight="700" fontFamily="Inter, sans-serif">
+          {pct.toFixed(0)}
+        </text>
+        <text x={cx} y={cy + 14} textAnchor="middle" fill="#6E6E80"
+          fontSize="10" fontFamily="Inter, sans-serif">
+          / 100
         </text>
       </svg>
-      <span className="text-sm font-semibold mt-1" style={{ color }}>{label}</span>
-      <span className="text-xs text-muted">Machine Health</span>
+      <span className="text-[12px] font-semibold" style={{ color }}>{label}</span>
     </div>
   )
 }
