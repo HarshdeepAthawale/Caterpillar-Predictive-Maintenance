@@ -1,38 +1,34 @@
-interface Props {
-  score: number   // 0-100
-  size?: number
-}
+interface Props { score: number; size?: number }
 
-export default function HealthGauge({ score, size = 120 }: Props) {
-  const r      = (size / 2) * 0.8
+export default function HealthGauge({ score, size = 140 }: Props) {
+  const r      = (size / 2) * 0.78
   const cx     = size / 2
   const cy     = size / 2
   const circ   = Math.PI * r
-  const offset = circ * (1 - score / 100)
-  const color  = score > 75 ? '#66bb6a' : score > 40 ? '#ffa726' : '#ef5350'
+  const offset = circ * (1 - Math.min(score, 100) / 100)
+  const color  = score > 75 ? '#16A34A' : score > 40 ? '#D97706' : '#DC2626'
+  const label  = score > 75 ? 'Healthy' : score > 40 ? 'Warning' : 'Critical'
 
   return (
-    <div className="flex flex-col items-center gap-1">
-      <svg width={size} height={size / 1.6} viewBox={`0 0 ${size} ${size / 1.6}`}>
-        {/* Background arc */}
+    <div className="flex flex-col items-center">
+      <svg width={size} height={size * 0.6} viewBox={`0 0 ${size} ${size * 0.6}`}>
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none" stroke="#2a2d3e" strokeWidth={size * 0.07} strokeLinecap="round"
+          fill="none" stroke="#E5E7EB" strokeWidth={size * 0.07} strokeLinecap="round"
         />
-        {/* Score arc */}
         <path
           d={`M ${cx - r} ${cy} A ${r} ${r} 0 0 1 ${cx + r} ${cy}`}
-          fill="none"
-          stroke={color}
-          strokeWidth={size * 0.07}
-          strokeLinecap="round"
-          strokeDasharray={circ}
-          strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.6s ease' }}
+          fill="none" stroke={color} strokeWidth={size * 0.07} strokeLinecap="round"
+          strokeDasharray={circ} strokeDashoffset={offset}
+          style={{ transition: 'stroke-dashoffset 0.7s ease' }}
         />
+        <text x={cx} y={cy * 0.92} textAnchor="middle" fill={color}
+          fontSize={size * 0.18} fontWeight="700" fontFamily="Inter, sans-serif">
+          {score.toFixed(0)}%
+        </text>
       </svg>
-      <span className="text-2xl font-bold" style={{ color }}>{score.toFixed(0)}%</span>
-      <span className="text-muted text-xs">Health Score</span>
+      <span className="text-sm font-semibold mt-1" style={{ color }}>{label}</span>
+      <span className="text-xs text-muted">Machine Health</span>
     </div>
   )
 }
