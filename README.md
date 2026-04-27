@@ -65,11 +65,11 @@ Caterpillar-Predictive-Maintenance/
 | Phase | Description | Status |
 |-------|-------------|--------|
 | 1 | Project structure + requirements | ✅ Done |
-| 2 | Data preprocessing pipeline | 🔄 In Progress |
-| 3 | CNN-LSTM model training | ⏳ Pending |
-| 4 | FastAPI backend + model serving | ⏳ Pending |
-| 5 | React frontend dashboard | ⏳ Pending |
-| 6 | Docker Compose integration | ⏳ Pending |
+| 2 | Data preprocessing pipeline | ✅ Done |
+| 3 | CNN-LSTM model training | ✅ Done |
+| 4 | FastAPI backend + model serving | ✅ Done |
+| 5 | React frontend dashboard | ✅ Done |
+| 6 | Docker Compose integration | ✅ Done |
 
 ## Quick Start
 
@@ -96,7 +96,22 @@ npm run dev
 
 ### Full Stack (Docker)
 ```bash
-docker-compose up --build
+cp .env.example .env          # configure credentials
+make build                    # build + start all services
+# OR
+docker compose up -d --build
+```
+
+| URL | Service |
+|-----|---------|
+| http://localhost | React frontend |
+| http://localhost:8000 | FastAPI backend |
+| http://localhost:8000/docs | Swagger UI |
+
+```bash
+make logs        # stream all logs
+make down        # stop everything
+make clean       # stop + remove volumes
 ```
 
 ## Evaluation Metrics
